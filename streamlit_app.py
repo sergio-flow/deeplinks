@@ -7,70 +7,64 @@ import re
 
 def parse_flights(input_text):
     parsed_flights = []
-    
+
     # Process each line
     for line in input_text.strip().split('\n'):
         if not line or line.isspace():
             continue
-            
-        # Skip line numbers
+
+        # Split and skip line numbers
         parts = line.strip().split()
         if not parts:
             continue
-            
-        # Skip the line number
         parts = parts[1:]
         if not parts:
             continue
-        
-        # Extract airline code (first 2 letters of the first part)
+
+        # Extract airline code (first 2 letters of first part)
         airline = parts[0][:2]
-        
-        # Extract flight number
+
+        # Extract flight number and cabin class from the first part
         flight_num = ""
-        first_part = parts[0][2:]  # Get everything after airline code in the first part
-        
-        # Skip any non-digit characters at the beginning (like "*")
+        cabin_class = ""
+        first_part = parts[0][2:]  # After airline code
+
         i = 0
+        # Skip any non-digit characters (like '*')
         while i < len(first_part) and not first_part[i].isdigit():
             i += 1
-        
-        # Extract the digits for the flight number
+
+        # Extract digits for the flight number
         while i < len(first_part) and first_part[i].isdigit():
             flight_num += first_part[i]
             i += 1
-        
+
+        # The next character (if exists) is the cabin class
+        if i < len(first_part) and first_part[i].isalpha():
+            cabin_class = first_part[i]
+
         # If no flight number found and there's a second part, check it
         if flight_num == "" and len(parts) > 1:
             second_part = parts[1]
             i = 0
-            # Skip any non-digit characters at the beginning
             while i < len(second_part) and not second_part[i].isdigit():
                 i += 1
-            # Extract the digits
             while i < len(second_part) and second_part[i].isdigit():
                 flight_num += second_part[i]
                 i += 1
-        
-        # Find the date (looking for pattern like 04APR)
+            if i < len(second_part) and second_part[i].isalpha():
+                cabin_class = second_part[i]
+
+        # Find date (e.g., 04APR)
         date = ""
         for part in parts:
             if len(part) == 5 and part[:2].isdigit() and part[2:5].isalpha():
                 date = part
                 break
-        
-        # Find cabin class (single letter with spaces around it)
-        cabin_class = ""
-        for i in range(1, len(parts) - 1):  # Skip first and last parts
-            if len(parts[i]) == 1 and parts[i].isalpha():
-                cabin_class = parts[i]
-                break
-        
-        # Find origin and destination (either as a 6-letter code or as two 3-letter codes)
+
+        # Find origin and destination (either 6-letter or two 3-letter codes)
         origin = ""
         destination = ""
-        
-        # First check for the 6-letter format (FCOORD)
         found_airports = False
         for i in range(len(parts)):
             if len(parts[i]) == 6 and parts[i].isalpha():
@@ -78,32 +72,28 @@ def parse_flights(input_text):
                 destination = parts[i][3:]
                 found_airports = True
                 break
-        
-        # If not found, look for two consecutive 3-letter codes
         if not found_airports:
             for i in range(len(parts) - 1):
                 if (len(parts[i]) == 3 and parts[i].isalpha() and 
                     len(parts[i+1]) == 3 and parts[i+1].isalpha()):
                     origin = parts[i]
                     destination = parts[i+1]
-                    found_airports = True
                     break
-        
-        # Find departure time (with optional A/P suffix)
+
+        # Find departure time (like 330P, 1105A)
         departure_time = ""
         for part in parts:
-            # Look for time formats like 330P, 1105A, 818A, etc.
             if part and part[0].isdigit():
                 if (part[-1] == 'A' or part[-1] == 'P') and part[:-1].isdigit():
-                    # This matches patterns like 330P, 1105A
                     departure_time = part
                     break
-        
+
         # Format the output line
         flight_line = f"{airline} {flight_num} {date} {cabin_class} {origin} {destination} {departure_time}"
         parsed_flights.append(flight_line)
-    
+
     return "\n".join(parsed_flights)
+
 
 iata = """
 3BB	America/Detroit
@@ -10113,7 +10103,7 @@ def generate_deep_link(text: str) -> str:
 # Streamlit UI
 st.title("Flights to Deep Links")
 
-st.markdown("**Paste (AA/DL) flights from Terminal, example:**")
+st.markdown("**Paste flights from Terminal (AA - Working, DL - In Progress), Example:**")
 st.code("""1 AA6951I 20SEP V IAHLHR SS1   330P  640A  21SEP S /DCAA /E
 2 AA6952I 30SEP V LHRIAH SS1   925A  140P /DCAA /E
 3 AA1993I 01OCT V DFWYYZ GK1   818A 1243P /E""")
