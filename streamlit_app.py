@@ -13,6 +13,8 @@ def parse_flights(input_text):
         if not line or line.isspace():
             continue
 
+        line = line.replace("SS1", "").replace("GK1", "").strip()
+
         # Split and skip line numbers
         parts = line.strip().split()
         if not parts:
