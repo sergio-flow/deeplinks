@@ -1,6 +1,7 @@
 import streamlit as st
 import urllib.parse
 from datetime import datetime, timezone
+from urllib.parse import urlencode
 import pytz
 import re
 
@@ -29,18 +30,26 @@ def parse_flights(input_text):
         flight_num = ""
         first_part = parts[0][2:]  # Get everything after airline code in the first part
         
-        # If there are digits in the first part after airline code, extract them
+        # Skip any non-digit characters at the beginning (like "*")
         i = 0
+        while i < len(first_part) and not first_part[i].isdigit():
+            i += 1
+        
+        # Extract the digits for the flight number
         while i < len(first_part) and first_part[i].isdigit():
             flight_num += first_part[i]
             i += 1
         
-        # If no flight number found and there's a second part that starts with a digit,
-        # check if the second part contains the flight number
-        if flight_num == "" and len(parts) > 1 and parts[1][0].isdigit():
+        # If no flight number found and there's a second part, check it
+        if flight_num == "" and len(parts) > 1:
+            second_part = parts[1]
             i = 0
-            while i < len(parts[1]) and parts[1][i].isdigit():
-                flight_num += parts[1][i]
+            # Skip any non-digit characters at the beginning
+            while i < len(second_part) and not second_part[i].isdigit():
+                i += 1
+            # Extract the digits
+            while i < len(second_part) and second_part[i].isdigit():
+                flight_num += second_part[i]
                 i += 1
         
         # Find the date (looking for pattern like 04APR)
@@ -57,15 +66,28 @@ def parse_flights(input_text):
                 cabin_class = parts[i]
                 break
         
-        # Find origin and destination (6 letter sequences with spaces around them)
+        # Find origin and destination (either as a 6-letter code or as two 3-letter codes)
         origin = ""
         destination = ""
+        
+        # First check for the 6-letter format (FCOORD)
+        found_airports = False
         for i in range(len(parts)):
             if len(parts[i]) == 6 and parts[i].isalpha():
-                # The format appears to be AAABBB where AAA is origin and BBB is destination
                 origin = parts[i][:3]
                 destination = parts[i][3:]
+                found_airports = True
                 break
+        
+        # If not found, look for two consecutive 3-letter codes
+        if not found_airports:
+            for i in range(len(parts) - 1):
+                if (len(parts[i]) == 3 and parts[i].isalpha() and 
+                    len(parts[i+1]) == 3 and parts[i+1].isalpha()):
+                    origin = parts[i]
+                    destination = parts[i+1]
+                    found_airports = True
+                    break
         
         # Find departure time (with optional A/P suffix)
         departure_time = ""
@@ -10021,12 +10043,69 @@ def generate_iten(flight_details):
 
     return iten.strip()
 
+def transform_time(time_str):
+    # Extract the time and indicator (A or P)
+    indicator = time_str[-1]
+    time_value = time_str[:-1]
+    
+    # Handle different length time strings
+    if len(time_value) == 3:  # e.g., 430
+        hour = time_value[0]
+        minute = time_value[1:3]
+    elif len(time_value) == 4:  # e.g., 1040
+        hour = time_value[0:2]
+        minute = time_value[2:4]
+    else:
+        return "Invalid format"
+    
+    # Format as 2-digit hour with indicator
+    return f"{hour.zfill(2)}{indicator}"
+
+def generate_delta_url(segments, cabin="BUSINESS", pax_count=1, price=807.50,
+                        trip_type="multiCity", exit_country="", currency="USD", fare_basis=[]):
+    base_url = "https://www.delta.com/flightsearch/search"
+
+    params = {
+        "cabin": cabin,
+        "paxCount": pax_count,
+        "price": price,
+        "tripType": trip_type,
+        "exitCountry": exit_country,
+        "currencyCd": currency,
+        "vendorRedirectFlag": "true",
+        "vendorID": "Google",
+        "numOfSegments": len(segments)
+    }
+
+    fare_basis = []
+    itin_segments = []
+
+    for i, segment in enumerate(segments):
+        airline, flight_number, date, class_code, origin, destination, time = segment.split()
+        match = re.match(r"(\d+)([A-Z]+)", date)
+        dateNumber = match.group(1)  # "16"
+        month = match.group(2)  # "NOV"
+        year = 2025
+        time = transform_time(time)
+        # airline, flight_number = flight_no[:2], flight_no[2:]
+        itin_segments.append(f"{i}:{class_code}:{origin}:{destination}:{airline}:{flight_number}:{month}:{dateNumber}:{year}:{time}")
+        fare_basis.append(f"ZLO90ENC")  # Example logic for fare basis
+
+    params["fareBasis"] = ":".join(fare_basis)
+    for i, segment in enumerate(itin_segments):
+        params[f"itinSegment[{i}]"] = segment
+
+    return f"{base_url}?{urlencode(params, safe=':')}"
+
 # Define the Python function to process the input
 def generate_deep_link(text: str) -> str:
     parsed = parse_flights(text)
 
-    iten = generate_iten(parsed)
+    if parsed[:2] == "DL":
+        lines = [line for line in parsed.split('\n') if line.strip()]
+        return generate_delta_url(lines)
 
+    iten = generate_iten(parsed)
     result = process_iten(iten, "https://www.aa.com/goto/metasearch?ITEN=")
 
     return result
