@@ -10134,7 +10134,7 @@ def generate_deep_link(text: str) -> str:
 # Streamlit UI
 st.title("Flights to Deep Links")
 
-st.markdown("**Paste flights from Terminal (AA - Working, DL - In Progress), Example:**")
+st.markdown("**Paste flights from Terminal, Example:**")
 st.code("""1 AA6951I 20SEP J IAHLHR SS1   330P  640A  21SEP S /DCAA /E
 2 AA6952I 30SEP T LHRIAH SS1   925A  140P /DCAA /E
 3 AA1993I 01OCT W DFWYYZ GK1   818A 1243P /E""")
