@@ -3,6 +3,7 @@ import urllib.parse
 from datetime import datetime, timezone
 from urllib.parse import urlencode
 import pytz
+from collections import defaultdict
 import re
 
 def parse_flights(input_text):
@@ -13,6 +14,7 @@ def parse_flights(input_text):
         if not line or line.isspace():
             continue
 
+        # Remove SS1 and GK1 from the line
         line = line.replace("SS1", "").replace("GK1", "").strip()
 
         # Split and skip line numbers
@@ -64,6 +66,12 @@ def parse_flights(input_text):
                 date = part
                 break
 
+        part_letter = ""
+        for i in range(1, len(parts) - 1):  # Skip first and last parts
+            if len(parts[i]) == 1 and parts[i].isalpha():
+                part_letter = parts[i]
+                break
+
         # Find origin and destination (either 6-letter or two 3-letter codes)
         origin = ""
         destination = ""
@@ -91,7 +99,7 @@ def parse_flights(input_text):
                     break
 
         # Format the output line
-        flight_line = f"{airline} {flight_num} {date} {cabin_class} {origin} {destination} {departure_time}"
+        flight_line = f"{part_letter} {airline} {flight_num} {date} {cabin_class} {origin} {destination} {departure_time}"
         parsed_flights.append(flight_line)
 
     return "\n".join(parsed_flights)
@@ -9983,18 +9991,33 @@ def process_iten(iten_str, base_url):
 
 def generate_iten(flight_details):
     flights = flight_details.strip().split("\n")
+    part_dict = defaultdict(list)
+
+    # Step 1: Group flights by 'part'
+    for flight in flights:
+        parts = re.split(r'\s+', flight)
+        part = parts[0]
+        part_dict[part].append(parts)
+
     itn_parts = []
     seg_parts = []
     itin_summary = []
     itin_counts = []
 
-    for idx, flight in enumerate(flights):
-        parts = re.split(r'\s+', flight)
-        carrier, flight_number, date, booking_class, origin, dest, dep_time = parts[:7]
+    # Step 2: Build itinerary parts per 'part'
+    part_keys = list(part_dict.keys())
+    for idx, part_key in enumerate(part_keys):
+        flight_group = part_dict[part_key]
+        first = flight_group[0]
+        last = flight_group[-1]
+
+        origin = first[5]
+        date = first[3]
+        dep_time = first[7]
+        dest = last[6]
 
         timestamp = parse_datetime_with_airport_timezone(f"{origin} {date} {dep_time}")
         itn_parts.append(f"%23{origin}|{dest}|0|0|{timestamp}")
-        seg_parts.append(f"%23{carrier}|{flight_number}|{booking_class}|{origin}|{dest}|{timestamp}|{idx}")
         itin_counts.append(",0,0")
 
         if idx == 0:
@@ -10002,10 +10025,17 @@ def generate_iten(flight_details):
             itin_summary.append(f",0,")
             itin_summary.append(f"{dest} (itn[0].dest)")
 
+    # Step 3: Build segment parts for each individual flight, with correct part index as seg_idx
+    for idx, part_key in enumerate(part_keys):
+        flight_group = part_dict[part_key]
+        for flight in flight_group:
+            part, carrier, flight_number, date, booking_class, origin, dest, dep_time = flight[:8]
+            timestamp = parse_datetime_with_airport_timezone(f"{origin} {date} {dep_time}")
+            seg_parts.append(f"%23{carrier}|{flight_number}|{booking_class}|{origin}|{dest}|{timestamp}|{idx}")
+
     itn_summary = "\n".join(itin_summary)
     itn_string = "\n".join(itn_parts)
     seg_string = "\n".join(seg_parts)
-
     itin_counts_string = "".join(itin_counts) if len(itin_counts) > 1 else ",0"
 
     iten = f"""
@@ -10030,7 +10060,6 @@ def generate_iten(flight_details):
 
     // Segments
     {seg_string}
-
     """
 
     return iten.strip()
@@ -10093,9 +10122,9 @@ def generate_delta_url(segments, cabin="BUSINESS", pax_count=1, price=807.50,
 def generate_deep_link(text: str) -> str:
     parsed = parse_flights(text)
 
-    if parsed[:2] == "DL":
-        lines = [line for line in parsed.split('\n') if line.strip()]
-        return generate_delta_url(lines)
+    # if parsed[:2] == "DL":
+    #     lines = [line for line in parsed.split('\n') if line.strip()]
+    #     return generate_delta_url(lines)
 
     iten = generate_iten(parsed)
     result = process_iten(iten, "https://www.aa.com/goto/metasearch?ITEN=")
