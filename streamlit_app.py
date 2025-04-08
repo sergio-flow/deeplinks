@@ -10142,23 +10142,10 @@ st.code("""1 AA6951I 20SEP J IAHLHR SS1   330P  640A  21SEP S /DCAA /E
 # Text area with minimum 5 lines
 user_input = st.text_area("Paste your flight data below:", height=120)
 
-# Create layout with two columns
-col1, col2 = st.columns([2, 3])  # Adjust the ratio as needed
+# Remove dropdown label and place it to the right of the button
+col1, col2 = st.columns([2, 2.5])  # You can adjust proportions
 
 with col1:
-    airline_choice = st.selectbox(
-        "Choose Airline",
-        options=["Choose Airline", "American Airlines", "Lufthansa", "Delta"],
-        index=0
-    )
-
-# Map airline name to its 2-letter code
-airline_codes = {
-    "American Airlines": "aa",
-    "Lufthansa": "lh",
-    "Delta": "dl"
-}
-with col2:
     if st.button("Generate Deep Link"):
         if airline_choice == "Choose Airline":
             st.warning("Please choose an airline.")
@@ -10166,10 +10153,22 @@ with col2:
             st.warning("Please paste some flight data before generating the link.")
         else:
             airline_code = airline_codes[airline_choice]
-
-            # Handle each airline code
             if airline_code == "aa":
                 link = generate_deep_link(user_input)
                 st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
-            elif airline_code in ["lh", "dl"]:
+            else:
                 st.info(f"Deep link generation for {airline_choice} is not yet implemented.")
+
+with col2:
+    airline_choice = st.selectbox(
+        label="",  # Removes label
+        options=["Choose Airline", "American Airlines", "Lufthansa", "Delta"],
+        index=0
+    )
+
+# Map after selectbox so it's defined before button press
+airline_codes = {
+    "American Airlines": "aa",
+    "Lufthansa": "lh",
+    "Delta": "dl"
+}
