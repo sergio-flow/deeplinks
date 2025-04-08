@@ -10142,37 +10142,32 @@ st.code("""1 AA6951I 20SEP J IAHLHR SS1   330P  640A  21SEP S /DCAA /E
 # Text area with minimum 5 lines
 user_input = st.text_area("Paste your flight data below:", height=120)
 
-# Remove dropdown label and place it to the right of the button
-col1, col2 = st.columns([2, 2])  # You can adjust proportions
+# Airline selection via radio button
+airline_choice = st.radio(
+    label="Choose Airline:",
+    options=["American Airlines", "Lufthansa", "Delta"],
+    index=None,
+    horizontal=True
+)
 
-with col1:
-    st.markdown("&nbsp;", unsafe_allow_html=True)
-
-with col1:
-    if st.button("Generate Deep Link"):
-        if airline_choice == "Choose Airline":
-            st.warning("Please choose an airline.")
-        elif not user_input.strip():
-            st.warning("Please paste some flight data before generating the link.")
-        else:
-            airline_code = airline_codes[airline_choice]
-            if airline_code == "aa":
-                link = generate_deep_link(user_input)
-                st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
-            else:
-                st.info(f"Deep link generation for {airline_choice} is not yet implemented.")
-
-with col2:
-    airline_choice = st.selectbox(
-        label="",  # Removes label
-        options=["Choose Airline", "American Airlines", "Lufthansa", "Delta"],
-        index=0,
-        label_visibility="hidden"
-    )
-
-# Map after selectbox so it's defined before button press
+# Airline code mapping
 airline_codes = {
     "American Airlines": "aa",
     "Lufthansa": "lh",
     "Delta": "dl"
 }
+
+# Generate Deep Link button
+if st.button("Generate Deep Link"):
+    if not airline_choice:
+        st.warning("Please choose an airline.")
+    elif not user_input.strip():
+        st.warning("Please paste some flight data before generating the link.")
+    else:
+        airline_code = airline_codes[airline_choice]
+        if airline_code == "aa":
+            link = generate_deep_link(user_input)
+            st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
+        else:
+            st.info(f"Deep link generation for {airline_choice} is not yet implemented.")
+
