@@ -10142,10 +10142,31 @@ st.code("""1 AA6951I 20SEP J IAHLHR SS1   330P  640A  21SEP S /DCAA /E
 # Text area with minimum 5 lines
 user_input = st.text_area("Paste your flight data below:", height=120)
 
-# Button to trigger link generation
-if st.button("Generate Deep Link"):
-    if user_input.strip():
-        link = generate_deep_link(user_input)
-        st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
-    else:
-        st.warning("Please paste some flight data before generating the link.")
+# Create layout with two columns
+col1, col2 = st.columns([2, 3])  # Adjust the ratio as needed
+
+with col1:
+    airline_choice = st.selectbox(
+        "Choose Airline",
+        options=["Choose Airline", "American Airlines", "Lufthansa", "Delta"],
+        index=0
+    )
+
+# Map airline name to its 2-letter code
+airline_codes = {
+    "American Airlines": "aa",
+    "Lufthansa": "lh",
+    "Delta": "dl"
+}
+
+with col2:
+    if st.button("Generate Deep Link"):
+        if airline_choice == "Choose Airline":
+            st.warning("Please choose an airline.")
+        elif user_input.strip():
+            airline_code = airline_codes[airline_choice]
+            # Include airline_code before generating the link
+            link = generate_deep_link(user_input, airline_code)
+            st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
+        else:
+            st.warning("Please paste some flight data before generating the link.")
