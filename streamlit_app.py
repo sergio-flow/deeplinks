@@ -10146,6 +10146,9 @@ user_input = st.text_area("Paste your flight data below:", height=120)
 col1, col2 = st.columns([2, 2])  # You can adjust proportions
 
 with col1:
+    st.markdown("&nbsp;", unsafe_allow_html=True)
+
+with col1:
     if st.button("Generate Deep Link"):
         if airline_choice == "Choose Airline":
             st.warning("Please choose an airline.")
