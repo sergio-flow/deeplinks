@@ -10143,7 +10143,7 @@ st.code("""1 AA6951I 20SEP J IAHLHR SS1   330P  640A  21SEP S /DCAA /E
 user_input = st.text_area("Paste your flight data below:", height=120)
 
 # Remove dropdown label and place it to the right of the button
-col1, col2 = st.columns([2, 2.5])  # You can adjust proportions
+col1, col2 = st.columns([2, 2])  # You can adjust proportions
 
 with col1:
     if st.button("Generate Deep Link"):
