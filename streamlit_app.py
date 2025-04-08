@@ -10158,15 +10158,18 @@ airline_codes = {
     "Lufthansa": "lh",
     "Delta": "dl"
 }
-
 with col2:
     if st.button("Generate Deep Link"):
         if airline_choice == "Choose Airline":
             st.warning("Please choose an airline.")
-        elif user_input.strip():
-            airline_code = airline_codes[airline_choice]
-            # Include airline_code before generating the link
-            link = generate_deep_link(user_input, airline_code)
-            st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
-        else:
+        elif not user_input.strip():
             st.warning("Please paste some flight data before generating the link.")
+        else:
+            airline_code = airline_codes[airline_choice]
+
+            # Handle each airline code
+            if airline_code == "aa":
+                link = generate_deep_link(user_input)
+                st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
+            elif airline_code in ["lh", "dl"]:
+                st.info(f"Deep link generation for {airline_choice} is not yet implemented.")
