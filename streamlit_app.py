@@ -10163,7 +10163,8 @@ with col2:
     airline_choice = st.selectbox(
         label="",  # Removes label
         options=["Choose Airline", "American Airlines", "Lufthansa", "Delta"],
-        index=0
+        index=0,
+        label_visibility="hidden"
     )
 
 # Map after selectbox so it's defined before button press
