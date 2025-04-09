@@ -10082,9 +10082,11 @@ def transform_time(time_str):
     # Format as 2-digit hour with indicator
     return f"{hour.zfill(2)}{indicator}"
 
-def generate_delta_url(segments, cabin="BUSINESS", pax_count=1, price=807.50,
+def generate_delta_url(input, cabin="BUSINESS", pax_count=1, price=807.50,
                         trip_type="multiCity", exit_country="", currency="USD", fare_basis=[]):
     base_url = "https://www.delta.com/flightsearch/search"
+
+    segments = parse_flights(input)
 
     params = {
         "cabin": cabin,
@@ -10102,7 +10104,7 @@ def generate_delta_url(segments, cabin="BUSINESS", pax_count=1, price=807.50,
     itin_segments = []
 
     for i, segment in enumerate(segments):
-        airline, flight_number, date, class_code, origin, destination, time = segment.split()
+        part, airline, flight_number, date, class_code, origin, destination, time = segment.split()
         match = re.match(r"(\d+)([A-Z]+)", date)
         dateNumber = match.group(1)  # "16"
         month = match.group(2)  # "NOV"
@@ -10119,7 +10121,7 @@ def generate_delta_url(segments, cabin="BUSINESS", pax_count=1, price=807.50,
     return f"{base_url}?{urlencode(params, safe=':')}"
 
 # Define the Python function to process the input
-def generate_deep_link(text: str) -> str:
+def generate_aa_link(text: str) -> str:
     parsed = parse_flights(text)
 
     # if parsed[:2] == "DL":
@@ -10166,7 +10168,10 @@ if st.button("Generate Deep Link"):
     else:
         airline_code = airline_codes[airline_choice]
         if airline_code == "aa":
-            link = generate_deep_link(user_input)
+            link = generate_aa_link(user_input)
+            st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
+        if airline_code == "dl":
+            link = generate_delta_url(user_input)
             st.markdown(f'### Your Deep Link:\n<a href="{link}" target="_blank">{link}</a>', unsafe_allow_html=True)
         else:
             st.info(f"Deep link generation for {airline_choice} is not yet implemented.")
